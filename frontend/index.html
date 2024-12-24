@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fund Allocation Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.1/dist/web3.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 50px;
+        text-align: center;
+      }
+      input,
+      button,
+      textarea {
+        padding: 10px;
+        margin: 10px;
+        width: 80%;
+        max-width: 400px;
+      }
+      table {
+        width: 80%;
+        margin: 20px auto;
+        border-collapse: collapse;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ccc;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fund Allocation Tracker</h1>
+    <button id="connectButton">Connect MetaMask</button>
+    <p id="account">Not connected</p>
+
+    <h2>Allocate Funds</h2>
+    <input type="text" id="recipient" placeholder="Recipient Address" />
+    <input type="number" id="amount" placeholder="Amount (ETH)" />
+    <textarea id="description" rows="4" placeholder="Description"></textarea
+    ><br />
+    <button id="allocateButton">Allocate Funds</button>
+
+    <h2>Track Allocations</h2>
+    <input type="text" id="trackRecipient" placeholder="Recipient Address" />
+    <button id="trackButton">Track Allocations</button>
+
+    <h3>Allocations</h3>
+    <table id="allocationTable">
+      <thead>
+        <tr>
+          <th>Amount</th>
+          <th>Description</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script>
+      let web3;
+      let contract;
+      let account;
+
+      const contractABI = [
+        {
+          inputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "recipient",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "description",
+              type: "string",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "timestamp",
+              type: "uint256",
+            },
+          ],
+          name: "FundsAllocated",
+          type: "event",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "recipient",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "description",
+              type: "string",
+            },
+          ],
+          name: "allocateFunds",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "allocations",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "timestamp",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "description",
+              type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "recipient",
+              type: "address",
+            },
+          ],
+          name: "trackAllocation",
+          outputs: [
+            {
+              components: [
+                {
+                  internalType: "uint256",
+                  name: "amount",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "timestamp",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "description",
+                  type: "string",
+                },
+              ],
+              internalType: "struct FundAllocationTracker.Allocation[]",
+              name: "",
+              type: "tuple[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ];
+      const contractAddress = "0x21Fc26c93DbB7F0d889CF25CD9C8435C99cFB2DD";
+
+      window.addEventListener("load", async () => {
+        if (window.ethereum) {
+          web3 = new Web3(window.ethereum);
+          try {
+            await ethereum.request({ method: "eth_requestAccounts" });
+            account = (await web3.eth.getAccounts())[0];
+            document.getElementById(
+              "account"
+            ).innerText = `Connected Account: ${account}`;
+            contract = new web3.eth.Contract(contractABI, contractAddress);
+          } catch (error) {
+            console.error("Error connecting MetaMask:", error);
+          }
+        } else {
+          alert("Please install MetaMask to use this feature.");
+        }
+      });
+
+      // Allocate funds
+      document
+        .getElementById("allocateButton")
+        .addEventListener("click", async () => {
+          const recipient = document.getElementById("recipient").value;
+          const amount = document.getElementById("amount").value;
+          const description = document.getElementById("description").value;
+
+          if (!web3.utils.isAddress(recipient) || !amount || !description) {
+            alert("Please fill in all fields correctly.");
+            return;
+          }
+
+          try {
+            const amountInWei = web3.utils.toWei(amount, "ether");
+            await contract.methods
+              .allocateFunds(recipient, amountInWei, description)
+              .send({ from: account });
+            alert("Funds allocated successfully!");
+          } catch (error) {
+            console.error("Error allocating funds:", error);
+          }
+        });
+
+      // Track allocations
+      document
+        .getElementById("trackButton")
+        .addEventListener("click", async () => {
+          const recipient = document.getElementById("trackRecipient").value;
+
+          if (!web3.utils.isAddress(recipient)) {
+            alert("Please enter a valid recipient address.");
+            return;
+          }
+
+          try {
+            const allocations = await contract.methods
+              .trackAllocation(recipient)
+              .call();
+            const tableBody = document
+              .getElementById("allocationTable")
+              .getElementsByTagName("tbody")[0];
+            tableBody.innerHTML = ""; // Clear previous allocations
+
+            allocations.forEach((allocation) => {
+              const row = tableBody.insertRow();
+              row.insertCell(0).innerText = web3.utils.fromWei(
+                allocation.amount,
+                "ether"
+              );
+              row.insertCell(1).innerText = allocation.description;
+              row.insertCell(2).innerText = new Date(
+                allocation.timestamp * 1000
+              ).toLocaleString();
+            });
+          } catch (error) {
+            console.error("Error tracking allocations:", error);
+          }
+        });
+    </script>
+  </body>
+</html>
