@@ -1,6 +1,3 @@
-Sure! Here's a README file for your **FundAllocationTracker** project:
-
----
 
 # Fund Allocation Tracker
 
@@ -107,10 +104,10 @@ Simply open the `index.html` file in a browser that has **MetaMask** installed.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is open to everyone, allowing access and usage for learning purposes
 
 ---
 
 ## Contact
 
-For any questions or issues, please feel free to open an issue on the GitHub repository or contact me via email:
+For any questions or issues, please feel free to open an issue on the GitHub repository or contact me via email: kalicharan4104@gmail.com
